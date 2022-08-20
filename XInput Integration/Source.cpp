@@ -5,15 +5,27 @@
 int main()
 {
 	XInput_Wrapper input;
-	input.InitializeControllers();
+	
+	/*
+	add setter functions for wrapper constraints
+	add vibration effects
+	sound 
+	triggers
+
+	*/
 
 	do
 	{
 		input.Update();
 
-		if (input.GetController(0)->m_state.Gamepad.wButtons & XINPUT_GAMEPAD_A)
+		auto controller = input.GetController(0);
+
+		if (controller->GetIsKeyPressed(XINPUT_GAMEPAD_A) && 
+			controller->GetIsKeyPressed(XINPUT_GAMEPAD_B) && 
+			controller->GetIsKeyPressed(XINPUT_GAMEPAD_X) && 
+			controller->GetIsKeyPressed(XINPUT_GAMEPAD_Y))
 		{
-			std::cout << input.GetController(0)->leftAnalogStickY << std::endl;
+			std::cout << "ABXY" << std::endl;
 		}
 
 

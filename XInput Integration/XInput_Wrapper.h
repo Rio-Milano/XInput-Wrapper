@@ -17,9 +17,18 @@
 #pragma comment(lib,"XInput.lib")
 #pragma comment(lib,"Xinput9_1_0.lib")
 
-
 struct Controller
 {
+	const WORD& GetMechanicalButtons()const
+	{
+		return m_state.Gamepad.wButtons;
+	}
+
+	bool GetIsKeyPressed(const WORD& key)const
+	{
+		return GetMechanicalButtons() & key;
+	}
+
 	XINPUT_STATE 
 		m_state;
 
@@ -45,17 +54,11 @@ class XInput_Wrapper
 	*/
 
 public:
-	void InitializeControllers()
+	XInput_Wrapper()
 	{
-		controllers.resize(XUSER_MAX_COUNT);
-		for (DWORD i = 0; i < XUSER_MAX_COUNT; i++)
-		{
-			controllers[i] = std::make_shared<Controller>();
-		}
-		CheckControllerConnections(controllers);
-
-
+		InitializeControllers();
 	}
+
 
 	void Update()
 	{
@@ -80,6 +83,17 @@ public:
 
 
 private:
+	void InitializeControllers()
+	{
+		controllers.resize(XUSER_MAX_COUNT);
+		for (DWORD i = 0; i < XUSER_MAX_COUNT; i++)
+		{
+			controllers[i] = std::make_shared<Controller>();
+		}
+		CheckControllerConnections(controllers);
+
+
+	}
 
 	void CheckControllerConnections(std::vector<std::shared_ptr<Controller>>& controllers)
 	{
@@ -88,10 +102,21 @@ private:
 			memset(&controllers[i]->m_state, 0, sizeof(XINPUT_STATE));
 
 			if (XInputGetState(i, &controllers[i]->m_state) == ERROR_SUCCESS)
+			{
+				if(controllers[i]->m_connected == false) 
+					std::cout << "Controller connected to port " << std::to_string(i) << std::endl;
+				
 				controllers[i]->m_connected = true;
+				
+			}
 
 			else
+			{
+				if (controllers[i]->m_connected == true)
+					std::cout << "Controller on port " << std::to_string(i) << " Disconnected\n";
+
 				controllers[i]->m_connected = false;
+			}
 		}
 	}
 
@@ -196,13 +221,6 @@ private:
 				XInputGetState(i, &controllers[i]->m_state);
 
 				ApplyDeadZoneToAnalogStick(controllers[i]);
-
-
-				/*if (controllers[i]->m_state.Gamepad.wButtons == XINPUT_GAMEPAD_X)
-				{
-					std::string preFix = "Controller (" + std::to_string(i) + ") :";
-					std::cout << preFix << " X Button was pressed" << std::endl;
-				}*/
 			}
 
 		}
