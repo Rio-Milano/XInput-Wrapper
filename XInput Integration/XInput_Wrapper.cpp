@@ -3,7 +3,7 @@
 #include<iostream>
 #include<string>
 #include<winerror.h>
-
+#include<crtdbg.h>
 
 const bool Controller::GetIsKeyPressed(const WORD& key) const
 {
@@ -35,6 +35,11 @@ const float& Controller::GetRightStickX() const
 	return m_rightAnalogStickX;
 }
 
+const float& Controller::GetRightStickY() const
+{
+	return m_rightAnalogStickY;
+}
+
 const float& Controller::GetLeftTrigger() const
 {
 	return m_leftTrigger;
@@ -45,10 +50,6 @@ const float& Controller::GetRightTrigger() const
 	return m_rightTrigger;
 }
 
-const float& Controller::GetRightStickY() const
-{
-	return m_rightAnalogStickY;
-}
 
 void Controller::SetVibrationState(WORD leftMotorSpeed, WORD rightMotorSpeed)
 {
@@ -74,6 +75,7 @@ void Controller::SetVibrationState(WORD leftMotorSpeed, WORD rightMotorSpeed)
 XInput_Wrapper::XInput_Wrapper()
 {
 	InitializeControllers();
+	CheckControllerConnections();
 }
 
 void XInput_Wrapper::Update()
@@ -122,8 +124,7 @@ void XInput_Wrapper::SetTriggerThresholds(BYTE leftThreshold, BYTE rightThreshol
 
 const std::shared_ptr<Controller>& XInput_Wrapper::GetController(const int& index) const
 {
-	//if(index >= controllers.size())
-	//	throw exception
+	_ASSERT(index >= 0 || index < m_controllers.size());
 	return m_controllers[index];
 }
 
@@ -189,7 +190,7 @@ void XInput_Wrapper::ApplyDeadZoneToAnalogStick(std::shared_ptr<Controller>& con
 		//if position vector is outside the usable stick radius
 		if (LmagnitudeOfStickShift > m_leftAnalogStickRadius)
 			//set the magnitude to the useable stick radius
-			LmagnitudeOfStickShift = LmagnitudeOfStickShift;
+			LmagnitudeOfStickShift = m_leftAnalogStickRadius;
 
 		//subtract the deadzone from the magnitude
 		LmagnitudeOfStickShift -= m_leftAnalogStickDeadZone;
@@ -231,7 +232,7 @@ void XInput_Wrapper::ApplyDeadZoneToAnalogStick(std::shared_ptr<Controller>& con
 		//if position vector is outside the usable stick radius
 		if (RmagnitudeOfStickShift > m_rightAnalogStickRadius)
 			//set the magnitude to the useable stick radius
-			RmagnitudeOfStickShift = RmagnitudeOfStickShift;
+			RmagnitudeOfStickShift = m_rightAnalogStickDeadZone;
 
 		//subtract the deadzone from the magnitude
 		RmagnitudeOfStickShift -= m_rightAnalogStickDeadZone;
