@@ -1,241 +1,94 @@
 #ifndef XINPUT_WRAPPER_H
 #define XINPUT_WRAPPER_H
 
-#include<iostream>
-#include<string>
-
-//include xinput headders
 #include<Windows.h>
-#include<winerror.h>
 #include<Xinput.h>
 #include<vector>
 #include<memory>
 #include<chrono>
 
+/*
+https://docs.microsoft.com/en-us/windows/win32/xinput/getting-started-with-xinput
+https://www.geeksforgeeks.org/chrono-in-c/
 
-//link the required libraries
-#pragma comment(lib,"XInput.lib")
-#pragma comment(lib,"Xinput9_1_0.lib")
-
-struct Controller
+*/
+class Controller
 {
-	const WORD& GetMechanicalButtons()const
-	{
-		return m_state.Gamepad.wButtons;
-	}
-
-	bool GetIsKeyPressed(const WORD& key)const
-	{
-		return GetMechanicalButtons() & key;
-	}
-
-	XINPUT_STATE 
-		m_state;
-
-	bool 
-		m_connected = false;
-
-	float
-		leftAnalogStickX,
-		leftAnalogStickY,
-
-		rightAnalogStickX,
-		rightAnalogStickY;
-
-
-};
-
-class XInput_Wrapper
-{
-	/*
-		Referances
-		https://docs.microsoft.com/en-us/windows/win32/xinput/getting-started-with-xinput
-		https://www.geeksforgeeks.org/chrono-in-c/
-	*/
-
+	friend class XInput_Wrapper;
 public:
-	XInput_Wrapper()
-	{
-		InitializeControllers();
-	}
-
-
-	void Update()
-	{
-		std::chrono::duration<double> elapsed_secconds = B - A;
-		if (elapsed_secconds.count() >= CHECK_CONNECTED_CONTROLLER_INTERVALS)
-		{
-			CheckControllerConnections(controllers);
-			A = B;
-		}
-		B = std::chrono::system_clock::now();
-
-		CheckControllerState(controllers);
-	}
-
-	const std::shared_ptr<Controller>& GetController(const int& index) const
-	{
-		//if(index >= controllers.size())
-		//	throw exception
-		return controllers[index];
-	}
-
+	const bool GetIsKeyPressed(const WORD& key) const;
+	const bool& GetIsConnected()const;
+	const DWORD& GetIndex()const;
+	const float& GetLeftStickX()const;
+	const float& GetLeftStickY()const;
+	const float& GetRightStickX()const;
+	const float& GetRightStickY()const;
+	const float& GetLeftTrigger()const;
+	const float& GetRightTrigger()const;
+	
+	void SetVibrationState(WORD leftMotorSpeed, WORD rightMotorSpeed);
 
 
 private:
-	void InitializeControllers()
-	{
-		controllers.resize(XUSER_MAX_COUNT);
-		for (DWORD i = 0; i < XUSER_MAX_COUNT; i++)
-		{
-			controllers[i] = std::make_shared<Controller>();
-		}
-		CheckControllerConnections(controllers);
 
+	XINPUT_STATE m_state{0};
+	XINPUT_VIBRATION m_vibrationState{0};
+	bool m_connected{ false };
+	DWORD m_index{ 0 };
+	
+	float m_leftAnalogStickX{0.f};
+	float m_leftAnalogStickY{0.f};
+	float m_rightAnalogStickX{0.f};
+	float m_rightAnalogStickY{0.f};
+	
+	float m_leftTrigger{ 0.f };
+	float m_rightTrigger{ 0.f };
 
-	}
-
-	void CheckControllerConnections(std::vector<std::shared_ptr<Controller>>& controllers)
-	{
-		for (DWORD i = 0; i < XUSER_MAX_COUNT; i++)
-		{
-			memset(&controllers[i]->m_state, 0, sizeof(XINPUT_STATE));
-
-			if (XInputGetState(i, &controllers[i]->m_state) == ERROR_SUCCESS)
-			{
-				if(controllers[i]->m_connected == false) 
-					std::cout << "Controller connected to port " << std::to_string(i) << std::endl;
-				
-				controllers[i]->m_connected = true;
-				
-			}
-
-			else
-			{
-				if (controllers[i]->m_connected == true)
-					std::cout << "Controller on port " << std::to_string(i) << " Disconnected\n";
-
-				controllers[i]->m_connected = false;
-			}
-		}
-	}
-
-	void ApplyDeadZoneToAnalogStick(std::shared_ptr<Controller>& controller)
-	{
-		////get a referance to the passed controller state
-		XINPUT_STATE& state = controller->m_state;
-
-		//initialize some variables to hold the stick position vector
-		float LstickPx = 0.0f, LstickPy = 0.0f;
-
-		//assign stick position vector
-		LstickPx = static_cast<float>(state.Gamepad.sThumbLX);
-		LstickPy = static_cast<float>(state.Gamepad.sThumbLY);
-
-		float
-			//calculate the magnitude of the position vector
-			LmagnitudeOfStickShift = static_cast<float>(sqrt(pow(static_cast<double>(LstickPx), 2.0) + pow(static_cast<double>(LstickPy), 2.0))),
-
-			//use the magnitude to calculate the normal of the position vector
-			LstickShiftNormalX = LstickPx / LmagnitudeOfStickShift,
-			LstickShiftNormalY = LstickPy / LmagnitudeOfStickShift;
-
-		//if position vector is not inside the dead zone radius
-		if (LmagnitudeOfStickShift > LEFT_ANALOG_STICK_DEADZONE)
-		{
-			//if position vector is outside the usable stick radius
-			if (LmagnitudeOfStickShift > LEFT_MAX_ANALOG_STICK_RADIUS)
-				//set the magnitude to the useable stick radius
-				LmagnitudeOfStickShift = LmagnitudeOfStickShift;
-
-			//subtract the deadzone from the magnitude
-			LmagnitudeOfStickShift -= LEFT_ANALOG_STICK_DEADZONE;
-
-			float
-				//calculate the maximu magnitude a stick can have
-				LmaxMagnitudeOfAnalogStick = LEFT_MAX_ANALOG_STICK_RADIUS - LEFT_ANALOG_STICK_DEADZONE,
-				//calculate the magnitude the stick has bassed on the max magnitude
-				LrelativeMagnitude = LmagnitudeOfStickShift / LmaxMagnitudeOfAnalogStick;
-
-
-			controller->leftAnalogStickX = LstickShiftNormalX * LrelativeMagnitude;
-			controller->leftAnalogStickY = LstickShiftNormalY * LrelativeMagnitude;
-		}
-		else
-		{
-			controller->leftAnalogStickX = 0.f;
-			controller->leftAnalogStickY = 0.f;
-		}
-
-		//initialize some variables to hold the stick position vector
-		float RstickPx = 0.0f, RstickPy = 0.0f;
-
-		//assign stick position vector
-		RstickPx = static_cast<float>(state.Gamepad.sThumbRX);
-		RstickPy = static_cast<float>(state.Gamepad.sThumbRY);
-
-		float
-			//calculate the magnitude of the position vector
-			RmagnitudeOfStickShift = static_cast<float>(sqrt(pow(static_cast<double>(RstickPx), 2.0) + pow(static_cast<double>(RstickPy), 2.0))),
-
-			//use the magnitude to calculate the normal of the position vector
-			RstickShiftNormalX = RstickPx / RmagnitudeOfStickShift,
-			RstickShiftNormalY = RstickPy / RmagnitudeOfStickShift;
-
-		//if position vector is not inside the dead zone radius
-		if (RmagnitudeOfStickShift > RIGHT_ANALOG_STICK_DEADZONE)
-		{
-			//if position vector is outside the usable stick radius
-			if (RmagnitudeOfStickShift > RIGHT_MAX_ANALOG_STICK_RADIUS)
-				//set the magnitude to the useable stick radius
-				RmagnitudeOfStickShift = RmagnitudeOfStickShift;
-
-			//subtract the deadzone from the magnitude
-			RmagnitudeOfStickShift -= RIGHT_ANALOG_STICK_DEADZONE;
-
-			float
-				//calculate the maximu magnitude a stick can RIGHT_ANALOG_STICK_DEADZONE
-				RmaxMagnitudeOfAnalogStick = RIGHT_MAX_ANALOG_STICK_RADIUS - RIGHT_ANALOG_STICK_DEADZONE,
-				//calculate the magnitude the stick has bassed on the max magnitude
-				RrelativeMagnitude = RmagnitudeOfStickShift / RmaxMagnitudeOfAnalogStick;
-
-
-			controller->rightAnalogStickX = RstickShiftNormalX * RrelativeMagnitude;
-			controller->rightAnalogStickY = RstickShiftNormalY * RrelativeMagnitude;
-		}
-		else
-		{
-			controller->rightAnalogStickX = 0.f;
-			controller->rightAnalogStickY = 0.f;
-		}
-
-	}
-
-	void CheckControllerState(std::vector<std::shared_ptr<Controller>>& controllers)
-	{
-		for (DWORD i = 0; i < XUSER_MAX_COUNT; i++)
-		{
-			if (controllers[i]->m_connected == true)
-			{
-				//only update slots that are connected for performance
-				XInputGetState(i, &controllers[i]->m_state);
-
-				ApplyDeadZoneToAnalogStick(controllers[i]);
-			}
-
-		}
-	}
-
-	std::vector<std::shared_ptr<Controller>> controllers;
-	std::chrono::time_point<std::chrono::system_clock> A, B;
-
-	double CHECK_CONNECTED_CONTROLLER_INTERVALS = 3.0;
-
-	float LEFT_ANALOG_STICK_DEADZONE = 100.f;
-	float LEFT_MAX_ANALOG_STICK_RADIUS = 32767;
-	float RIGHT_ANALOG_STICK_DEADZONE = 100;
-	float RIGHT_MAX_ANALOG_STICK_RADIUS = 32767;
+	//rumble frequency constraints
+	const WORD m_MIN_RUMBLE_SPEED{ 0 };
+	const WORD m_MAX_RUMBLE_SPEED{ 65535 };
 
 };
+
+
+class XInput_Wrapper
+{
+
+public:
+	XInput_Wrapper();
+	void Update();
+	void SetAnalogStickConstraints(float leftDeadZone, const float& leftRadius, float rightDeadZone, const float& rightRadius);
+	void SetCheckForControllerIntervals(const float& intervals);
+	void SetTriggerThresholds(BYTE leftThreshold, BYTE rightThreshold);
+
+	const std::shared_ptr<Controller>& GetController(const int& index) const;
+
+private:
+	void InitializeControllers();
+	void CheckControllerConnections();
+	void ApplyDeadZoneToAnalogStick(std::shared_ptr<Controller>& controller);
+	void ApplyThresholdToTriggers(std::shared_ptr<Controller>& controller);
+	void CheckControllerState();
+
+
+	std::vector<std::shared_ptr<Controller>> m_controllers{};
+	std::chrono::time_point<std::chrono::system_clock> m_A{}, m_B{};
+	
+	double m_checkForConnectedControllersInIntervalsOfX{ 3.0 };
+	
+	float m_leftAnalogStickRadius{32767};
+	float m_leftAnalogStickDeadZone{ 100.f };
+	float m_rightAnalogStickRadius{ 32767 };
+	float m_rightAnalogStickDeadZone{ 100 };
+	BYTE m_leftTriggerThreshold{ 30 };
+	BYTE m_rightTriggerThreshold{ 30 };
+
+	//XInput Constraints
+	const float XINPUT_MIN_DEADZONE{ 0.f };
+	const float XINPUT_MAX_DEADZONE{ 65534.f };
+
+
+};
+
 
 #endif
