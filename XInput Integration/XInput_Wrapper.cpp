@@ -50,6 +50,16 @@ const float& Controller::GetRightTrigger() const
 	return m_rightTrigger;
 }
 
+const WORD& Controller::GetLeftMotorSpeed() const
+{
+	return m_vibrationState.wLeftMotorSpeed;
+}
+
+const WORD& Controller::GetRightMotorSpeed() const
+{
+	return m_vibrationState.wRightMotorSpeed;
+}
+
 
 void Controller::SetVibrationState(WORD leftMotorSpeed, WORD rightMotorSpeed)
 {
@@ -232,7 +242,7 @@ void XInput_Wrapper::ApplyDeadZoneToAnalogStick(std::shared_ptr<Controller>& con
 		//if position vector is outside the usable stick radius
 		if (RmagnitudeOfStickShift > m_rightAnalogStickRadius)
 			//set the magnitude to the useable stick radius
-			RmagnitudeOfStickShift = m_rightAnalogStickDeadZone;
+			RmagnitudeOfStickShift = m_rightAnalogStickRadius;
 
 		//subtract the deadzone from the magnitude
 		RmagnitudeOfStickShift -= m_rightAnalogStickDeadZone;

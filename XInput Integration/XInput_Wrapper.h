@@ -25,7 +25,9 @@ public:
 	const float& GetRightStickY()const;
 	const float& GetLeftTrigger()const;
 	const float& GetRightTrigger()const;
-	
+	const WORD& GetLeftMotorSpeed()const;
+	const WORD& GetRightMotorSpeed()const;
+
 	void SetVibrationState(WORD leftMotorSpeed, WORD rightMotorSpeed);
 
 
